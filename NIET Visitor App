@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIET Visitor App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        .container {
+            text-align: center;
+            width: 90%;
+            max-width: 1000px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .logo {
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 10px;
+        }
+        .tagline {
+            font-size: 24px;
+            color: #0072bc;
+            margin-bottom: 20px;
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .button {
+            padding: 15px 30px;
+            font-size: 24px;
+            cursor: pointer;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .button-signin {
+            background-color: #00a651;
+        }
+        .button-signoff {
+            background-color: #f7941d;
+        }
+        .button-back {
+            background-color: #0072bc;
+        }
+        .button:hover {
+            opacity: 0.9;
+        }
+        .form-container {
+            display: none;
+            margin-top: 20px;
+        }
+        input, select {
+            margin: 10px 0;
+            padding: 10px;
+            font-size: 18px;
+            width: 100%;
+            border: 1px solid #0072bc;
+            border-radius: 5px;
+        }
+        #vehicleReg {
+            display: none;
+        }
+        #message {
+            font-size: 24px;
+            margin-top: 20px;
+            color: #0072bc;
+        }
+        #qrCode {
+            margin-top: 20px;
+        }
+        .back-button-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://1drv.ms/i/s!AohcWE8Gfn99got5zHk_9Bq-n06DTA?embed=1&width=3059&height=1255" alt="Company Logo" class="logo">
+        <div class="tagline">NIET Visitor Sign on Sign off</div>
+        
+        <div id="mainScreen" class="button-container">
+            <button class="button button-signin" onclick="showForm('signin')">Sign On</button>
+            <button class="button button-signoff" onclick="showForm('signoff')">Sign Off</button>
+        </div>
+        
+        <!-- Sign In Form -->
+        <div id="signinForm" class="form-container">
+            <input type="text" id="firstName" placeholder="First Name" required>
+            <input type="text" id="lastName" placeholder="Last Name" required>
+            <input type="tel" id="phoneNumber" placeholder="Phone Number" required>
+            <select id="parkedOnSite" onchange="toggleVehicleReg()">
+                <option value="">Have you parked on site?</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+            </select>
+            <input type="text" id="vehicleReg" placeholder="Vehicle Registration Number">
+            <button class="button button-signin" onclick="signIn()">Submit</button>
+
+            <!-- Back Button -->
+            <div class="back-button-container">
+                <button class="button button-back" onclick="showMainScreen()">Back</button>
+            </div>
+        </div>
+
+        <!-- Sign Off Form -->
+        <div id="signoffForm" class="form-container">
+            <input type="text" id="signoffName" placeholder="Start typing your name" oninput="filterNames()">
+            <select id="nameList"></select>
+            <button class="button button-signoff" onclick="signOff()">Sign Off</button>
+
+            <!-- Back Button -->
+            <div class="back-button-container">
+                <button class="button button-back" onclick="showMainScreen()">Back</button>
+            </div>
+        </div>
+
+        <div id="message"></div>
+        <div id="qrCode"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        let visitors = [];
+
+        function showForm(formType) {
+            document.getElementById('mainScreen').style.display = 'none';
+            document.getElementById('signinForm').style.display = 'none';
+            document.getElementById('signoffForm').style.display = 'none';
+            document.getElementById(formType + 'Form').style.display = 'block';
+            document.getElementById('message').innerHTML = '';
+            document.getElementById('qrCode').innerHTML = '';
+            if (formType === 'signoff') {
+                document.getElementById('signoffName').value = '';
+                document.getElementById('nameList').innerHTML = '';
+            }
+        }
+
+        function showMainScreen() {
+            document.getElementById('mainScreen').style.display = 'flex';
+            document.getElementById('signinForm').style.display = 'none';
+            document.getElementById('signoffForm').style.display = 'none';
+            document.getElementById('message').innerHTML = '';
+            document.getElementById('qrCode').innerHTML = '';
+        }
+
+        function toggleVehicleReg() {
+            const parkedOnSite = document.getElementById('parkedOnSite').value;
+            document.getElementById('vehicleReg').style.display = parkedOnSite === 'yes' ? 'block' : 'none';
+        }
+
+        function signIn() {
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const parkedOnSite = document.getElementById('parkedOnSite').value;
+            const vehicleReg = document.getElementById('vehicleReg').value;
+
+            if (firstName && lastName && phoneNumber && parkedOnSite) {
+                const visitorData = { firstName, lastName, phoneNumber, parkedOnSite, vehicleReg };
+                visitors.push(visitorData);
+                sendSignInDataToServer(visitorData);
+                document.getElementById('message').innerHTML = 'Sign-in successful!';
+                generateQRCode(firstName + ' ' + lastName);
+                resetForm('signin');
+                setTimeout(() => {
+                    showMainScreen();
+                }, 5000);
+            } else {
+                alert('Please fill in all required fields.');
+            }
+        }
+
+        function sendSignInDataToServer(visitorData) {
+            fetch('http://localhost:3000/signin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(visitorData)
+            })
+            .then(response => response.json())
+            .then(data => console.log('Server response:', data))
+            .catch(error => console.error('Error:', error));
+        }
+
+        function filterNames() {
+            const input = document.getElementById('signoffName').value.toLowerCase();
+            const nameList = document.getElementById('nameList');
+            nameList.innerHTML = '';
+            visitors.forEach((visitor, index) => {
+                const fullName = `${visitor.firstName} ${visitor.lastName}`.toLowerCase();
+                if (fullName.includes(input)) {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.text = `${visitor.firstName} ${visitor.lastName}`;
+                    nameList.add(option);
+                }
+            });
+        }
+
+        function signOff() {
+            const nameList = document.getElementById('nameList');
+            if (nameList.selectedIndex !== -1) {
+                const index = nameList.value;
+                visitors.splice(index, 1);
+                document.getElementById('message').innerHTML = 'Thank you for Visiting NIET';
+                resetForm('signoff');
+                setTimeout(() => {
+                    showMainScreen();
+                }, 2000);
+            } else {
+                alert('Please select a name to sign off.');
+            }
+        }
+
+        function resetForm(formType) {
+            const form = document.getElementById(formType + 'Form');
+            const inputs = form.getElementsByTagName('input');
+            for (let input of inputs) {
+                input.value = '';
+            }
+            const selects = form.getElementsByTagName('select');
+            for (let select of selects) {
+                select.selectedIndex = 0;
+            }
+        }
+
+        function generateQRCode(text) {
+            const qrCodeContainer = document.getElementById('qrCode');
+            qrCodeContainer.innerHTML = '';
+            new QRCode(qrCodeContainer, text);
+        }
+    </script>
+</body>
+</html>
